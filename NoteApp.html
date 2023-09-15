@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes App</title>
+    <!-- Add Bootstrap CSS link -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Add custom CSS for dark mode -->
+    <link id="custom-css" href="styles/light-mode.css" rel="stylesheet">
+
+    <!-- Custom CSS for fixed-size cards and random colors -->
+    <style>
+        body {
+            background-color: #FAF9F6; /* Set the background color to #FF5733 */
+        }
+
+        .custom-card {
+            width: 250px; /* Set the desired width for the cards */
+            height: 200px; /* Set the desired height for the cards */
+            cursor: pointer; /* Add pointer cursor to cards */
+        }
+
+        .note-title {
+            font-size: 18px;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px; /* Limit the width to prevent overflow */
+        }
+
+        .note-actions {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .card-content {
+            height: 50%; /* Set the maximum height for content */
+            overflow: hidden; /* Hide overflowing content */
+        }
+
+        .view-more-content {
+            height: auto; /* Auto-expand height when viewing full content */
+            overflow: visible; /* Show overflowing content */
+        }
+
+        /* Define an array of colors */
+        .random-card-color {
+            background-color: var(--random-card-bg-color);
+            color: var(--random-card-text-color);
+        }
+
+        .random-card-body-color {
+            background-color: var(--random-card-body-bg-color);
+            color: var(--random-card-body-text-color);
+        }
+
+        /* Apply specific colors to cards */
+        .bg-primary { --random-card-bg-color: #007bff; --random-card-text-color: #fff; --random-card-body-bg-color: #0056b3; --random-card-body-text-color: #fff; }
+        .bg-secondary { --random-card-bg-color: #6c757d; --random-card-text-color: #fff; --random-card-body-bg-color: #545b62; --random-card-body-text-color: #fff; }
+        .bg-success { --random-card-bg-color: #28a745; --random-card-text-color: #fff; --random-card-body-bg-color: #1a8520; --random-card-body-text-color: #fff; }
+        .bg-danger { --random-card-bg-color: #dc3545; --random-card-text-color: #fff; --random-card-body-bg-color: #ab161e; --random-card-body-text-color: #fff; }
+        .bg-warning { --random-card-bg-color: #ffc107; --random-card-text-color: #000; --random-card-body-bg-color: #cc9a06; --random-card-body-text-color: #fff; }
+        .bg-info { --random-card-bg-color: #17a2b8; --random-card-text-color: #fff; --random-card-body-bg-color: #0d7b8d; --random-card-body-text-color: #fff; }
+        .bg-light { --random-card-bg-color: #f8f9fa; --random-card-text-color: #000; --random-card-body-bg-color: #d1d3d4; --random-card-body-text-color: #000; }
+        .bg-dark { --random-card-bg-color: #343a40; --random-card-text-color: #fff; --random-card-body-bg-color: #1d2124; --random-card-body-text-color: #fff; }
+
+        @keyframes bounce {
+          0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+          }
+          40% {
+            transform: translateY(-20px);
+          }
+          60% {
+            transform: translateY(-10px);
+          }
+        }
+
+        /* Custom alert container positioning */
+        .custom-alert-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999; /* Ensure alerts are on top */
+        }
+
+        /* Custom alert styles */
+        .custom-alert {
+            position: relative;
+            margin-bottom: 10px;
+            display: none; /* Initially hide alerts */
+            opacity: 0;
+            transition: opacity 0.5s; /* Add fade effect */
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4 jumbotron">Notes App</h1>
+
+        <form id="note-form" class="mb-4">
+            <div class="form-group">
+                <label for="note-title">Note Title (Max 5 words, 50 characters):</label>
+                <input type="text" id="note-title" class="form-control" placeholder="Title for your note" maxlength="50">
+            </div>
+            <div class="form-group">
+                <label for="note-text">Add a new note:</label>
+                <textarea id="note-text" class="form-control" rows="3" placeholder="Type your note here"></textarea>
+            </div>
+            <button type="submit" class="btn btn-dark btn-lg btn-block">Add Note</button>
+        </form>
+    </div>
+    <div class="container-fluid mt-5">
+      <div id="notes-list" class="row">
+          <!-- Notes will be displayed here -->
+      </div>
+    </div>
+
+    <!-- View Note Modal -->
+    <div class="modal fade" id="viewNoteModal" tabindex="-1" role="dialog" aria-labelledby="viewNoteModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewNoteModalLabel">View Note</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <h5 id="view-note-title" class="note-title"></h5>
+                    <p id="view-note-text" class="view-more-content"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Note Modal -->
+    <div class="modal fade" id="editNoteModal" tabindex="-1" role="dialog" aria-labelledby="editNoteModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editNoteModalLabel">Edit Note</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="edit-note-title">Edit Title (Max 5 words, 50 characters):</label>
+                        <input type="text" id="edit-note-title" class="form-control" maxlength="50">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-note-text">Edit Note:</label>
+                        <textarea id="edit-note-text" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="saveEditedNote()">Save Changes</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Note Confirmation Modal -->
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" role="dialog" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmDeleteModalLabel">Confirm Delete</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this note?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" onclick="deleteNote()">Delete</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom alert container -->
+    <div class="custom-alert-container">
+            <!-- Alert for adding a note -->
+            <div class="alert alert-success alert-dismissible fade show custom-alert" role="alert" id="addAlert">
+                Note added successfully!
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <!-- Alert for editing a note -->
+            <div class="alert alert-warning alert-dismissible fade show custom-alert" role="alert" id="editAlert">
+                Note edited successfully!
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <!-- Alert for deleting a note -->
+            <div class="alert alert-danger alert-dismissible fade show custom-alert" role="alert" id="deleteAlert">
+                Note deleted successfully!
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+      </div>
+
+    <script>
+        // Initialize notes array
+        let notes = [];
+
+        // Track the index of the note being edited
+        let editIndex = -1;
+
+        // Define an array of available colors
+        const colors = ['bg-primary', 'bg-secondary', 'bg-success', 'bg-danger', 'bg-warning', 'bg-info', 'bg-light', 'bg-dark'];
+
+        // Function to show custom alerts with fade effect
+        function showAlert(alertId) {
+            const alert = document.getElementById(alertId);
+            alert.style.opacity = "1"; // Set opacity to fully visible
+
+            // Show the alert
+            alert.style.display = "block";
+
+            // Hide the alert after a few seconds (e.g., 3 seconds)
+            setTimeout(() => {
+                alert.style.opacity = "0"; // Set opacity to fully transparent
+                setTimeout(() => {
+                    alert.style.display = "none"; // Hide the alert after the fade-out effect
+                }, 500); // Match the transition duration
+            }, 3000); // Adjust the time as needed (3 seconds in this example)
+        }
+        // Function to add a new note
+        function addNote() {
+          const noteTitle = document.getElementById("note-title").value;
+          const noteText = document.getElementById("note-text").value;
+
+          if (noteTitle.trim() !== "" && noteText.trim() !== "") {
+            // Randomly select a color class from the array
+            const randomColorClass = colors[Math.floor(Math.random() * colors.length)];
+            notes.push({ title: noteTitle, text: noteText, colorClass: randomColorClass });
+            displayNotes();
+            document.getElementById("note-title").value = "";
+            document.getElementById("note-text").value = "";
+
+            // Find the newly added note card
+            const notesList = document.getElementById("notes-list");
+            const newNoteCard = notesList.lastChild;
+
+            // Apply the bounce animation
+            newNoteCard.style.animation = "bounce 0.5s ease";
+
+            // Remove the animation class after the animation completes
+            newNoteCard.addEventListener("animationend", () => {
+                newNoteCard.style.animation = "";
+              });
+          }
+
+          // Show the "Note added successfully!" alert
+            showAlert("addAlert");
+        }
+
+
+        // Function to edit a note
+        function editNote(index) {
+            editIndex = index;
+            const editedNote = notes[index];
+            document.getElementById("edit-note-title").value = editedNote.title;
+            document.getElementById("edit-note-text").value = editedNote.text;
+            $('#editNoteModal').modal('show'); // Show the edit modal
+        }
+
+        // Function to save edited note
+        function saveEditedNote() {
+            const editedNoteTitle = document.getElementById("edit-note-title").value;
+            const editedNoteText = document.getElementById("edit-note-text").value;
+
+            if (editedNoteTitle.trim() !== "" && editedNoteText.trim() !== "") {
+                notes[editIndex] = { title: editedNoteTitle, text: editedNoteText, colorClass: notes[editIndex].colorClass };
+                $('#editNoteModal').modal('hide'); // Hide the edit modal
+                displayNotes();
+            }
+
+            // Show the "Note edited successfully!" alert
+            showAlert("editAlert");
+        }
+
+        // Function to remove a note
+        function removeNote(index) {
+            if (index !== undefined) {
+                editIndex = index; // Set editIndex for delete confirmation
+                $('#confirmDeleteModal').modal('show'); // Show the delete confirmation modal
+            }
+        }
+
+        // Function to delete a note
+        function deleteNote() {
+            if (editIndex !== -1) {
+                notes.splice(editIndex, 1);
+                editIndex = -1; // Reset editIndex
+                $('#confirmDeleteModal').modal('hide'); // Hide the delete confirmation modal
+                displayNotes();
+            }
+            // Show the "Note deleted successfully!" alert
+            showAlert("deleteAlert");
+        }
+
+        // Function to open view note modal
+        function viewNote(index) {
+            const note = notes[index];
+            document.getElementById("view-note-title").textContent = note.title;
+            document.getElementById("view-note-text").textContent = note.text;
+            $('#viewNoteModal').modal('show'); // Show the view note modal
+        }
+
+        // Function to display notes
+        function displayNotes() {
+            const notesList = document.getElementById("notes-list");
+            notesList.innerHTML = "";
+
+            for (let i = 0; i < notes.length; i++) {
+                const note = notes[i];
+                const noteCard = document.createElement("div");
+                noteCard.className = "col-md-4 col-lg-4 col-xl-4 mb-4 custom-card sortable-card"; // Add "sortable-card" class
+                const truncatedText = note.text.split(" ").slice(0, 30).join(" ");
+                noteCard.innerHTML = `
+                    <div class="card h-100 ${note.colorClass}">
+                        <div class="card-body random-card-body-color draggable"> <!-- Add "draggable" class here -->
+                            <h5 class="card-title note-title">${note.title}</h5>
+                            <p class="card-text card-content">${truncatedText} . . . .</p>
+                            <div class="note-actions btn-group" role="group">
+                                <button class="btn btn-info" onclick="viewNote(${i})">View Note</button>
+                                <button class="btn btn-warning" data-toggle="modal" data-target="#editNoteModal" onclick="editNote(${i})">Edit</button>
+                                <button class="btn btn-danger" onclick="removeNote(${i})">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                notesList.appendChild(noteCard);
+            }
+        }
+
+        // Function to truncate title to 5 words and 50 characters
+        function truncateTitle(title) {
+            const maxWords = 5;
+            const maxCharacters = 50;
+            const words = title.split(" ");
+            if (words.length > maxWords) {
+                return words.slice(0, maxWords).join(" ").slice(0, maxCharacters) + "...";
+            }
+            if (title.length > maxCharacters) {
+                return title.slice(0, maxCharacters) + "...";
+            }
+            return title;
+        }
+
+        // Handle form submission
+        const noteForm = document.getElementById("note-form");
+        noteForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+            addNote();
+        });
+
+        // Initial display of notes
+        displayNotes();
+
+        $(function() {
+            // Make the cards sortable
+            $("#notes-list").sortable({
+                items: ".sortable-card", // Only make the "sortable-card" items sortable
+                containment: ".container", // Limit sorting within the container
+            });
+        });
+
+
+    </script>
+
+
+
+    <!-- Add Bootstrap JS and Popper.js -->
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
